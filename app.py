@@ -1,46 +1,48 @@
 import streamlit as st
-import pickle
+import pandas as pd
 import requests
-movies=pickle.load(open("similarity.pkl", 'rb'))
-similarity=pickle.load(open("movies_list.pkl", 'rb'))
-movies_list=movies['title'].values
-st.header("Movie Recommender System")
-select_value=st.selectbox("Select Movie From Dropdown",movies_list)
+import pickle
 
-def recommend(movie):
-    index=movies[movies['title']==movie].index[0]
-    distance=sorted(list(enumerate(similarity[index])),reverse=True ,key=lambda vector:vector[1])
-    recommend_movie=[]
-    recommend_poster=[]
-    for i in distance[1:6]:
-         movies_id=movies.iloc[i[0]].id
-         recommend_movie.append(movies.iloc[i[0]].title)
-         recommend_poster.append(fetch_poster(movies_id))
-    return recommend_movie
-    
-def fetch_poster(movies_id):
-    url="https://api.themoviedb.org/34/movie/550?api_key=115ca7422af5c87a6675cfe25e9da01f"
-    data=requests.get(url)
-    data=data.json()
-    poster_path=data('poster_path')
-    full_path ="https://image.tmdb.org/t/p/w500"+poster_path
+# Load the processed data and similarity matrix
+with open('movie_data.pkl', 'rb') as file:
+    movies, cosine_sim = pickle.load(file)
+
+# Function to get movie recommendations
+def get_recommendations(title, cosine_sim=cosine_sim):
+    idx = movies[movies['title'] == title].index[0]
+    sim_scores = list(enumerate(cosine_sim[idx]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    sim_scores = sim_scores[1:11]  # Get top 10 similar movies
+    movie_indices = [i[0] for i in sim_scores]
+    return movies[['title', 'movie_id']].iloc[movie_indices]
+
+# Fetch movie poster from TMDB API
+def fetch_poster(movie_id):
+    api_key = '7b995d3c6fd91a2284b4ad8cb390c7b8'  # Replace with your TMDB API key
+    url = f'https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}'
+    response = requests.get(url)
+    data = response.json()
+    poster_path = data['poster_path']
+    full_path = f"https://image.tmdb.org/t/p/w500{poster_path}"
     return full_path
 
-if st.button("Recommend"):
-    movie_name,movie_poster=recommend(select_value)
-    col1,col2,col3,col4,col5=st.columns
-    with col1:
-        st.text(movie_name[0])
-        st.image(movie_poster[0])
-    with col2:
-        st.text(movie_name[1]) 
-        st.image(movie_poster[1])   
-    with col3:
-        st.text(movie_name[2])
-        st.image(movie_poster[2])
-    with col4:
-        st.text(movie_name[3])
-        st.image(movie_poster[3])
-    with col5:
-        st.text(movie_name[4])   
-        st.image(movie_poster[4])         
+# Streamlit UI
+st.title("Movie Recommendation System")
+
+selected_movie = st.selectbox("Select a movie:", movies['title'].values)
+
+if st.button('Recommend'):
+    recommendations = get_recommendations(selected_movie)
+    st.write("Top 10 recommended movies:")
+
+    # Create a 2x5 grid layout
+    for i in range(0, 10, 5):  # Loop over rows (2 rows, 5 movies each)
+        cols = st.columns(5)  # Create 5 columns for each row
+        for col, j in zip(cols, range(i, i+5)):
+            if j < len(recommendations):
+                movie_title = recommendations.iloc[j]['title']
+                movie_id = recommendations.iloc[j]['movie_id']
+                poster_url = fetch_poster(movie_id)
+                with col:
+                    st.image(poster_url, width=130)
+                    st.write(movie_title)
