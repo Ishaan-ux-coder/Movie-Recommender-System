@@ -1,0 +1,16 @@
+# Large data files
+movies_metadata.csv
+movies.ipynb
+rebuild_pickles.py
+optimize_data.py
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Unused pickles (original pandas based)
+df.pkl
+indices.pkl
+tfidf.pkl
