@@ -1,4 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+venv/
 .env
-.venv
-__pycache__
+
+# Large Data Artifacts (Rebuilt at deploy time)
+*.pkl
+
+# IDE / Editor
+.vscode
+.idea
+
+# Vercel
 .vercel
